@@ -1,10 +1,5 @@
 pipeline {
-    agent {
-        docker {
-            image 'python:3.11-slim'
-            args '-v /var/run/docker.sock:/var/run/docker.sock'
-        }
-    }
+    agent any
 
     environment {
         DOCKERHUB_CREDENTIALS = credentials('dockerhub-creds')
@@ -21,9 +16,15 @@ pipeline {
             }
         }
         stage('Test') {
+            agent {
+                docker {
+                    image 'python:3.11-slim'
+                }
+            }
             steps {
                 sh '''
                 pip install -r requirements.txt
+                pip install pytest
                 pytest || true
                 '''
             }
