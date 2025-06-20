@@ -15,7 +15,14 @@ pipeline {
                 checkout scm
             }
         }
+
         stage('Test') {
+            agent {
+                docker {
+                    image 'python:3.11-slim'
+                    args '-v $HOME/.cache/pip:/root/.cache/pip'
+                }
+            }
             steps {
                 sh '''
                 pip install -r requirements.txt
@@ -23,6 +30,7 @@ pipeline {
                 '''
             }
         }
+
         stage('Build Docker Image') {
             steps {
                 sh '''
