@@ -2,11 +2,8 @@ pipeline {
     agent any
 
     environment {
-        DOCKERHUB_CREDENTIALS = credentials('dockerhub-creds')
-        DOCKERHUB_USER = "${DOCKERHUB_CREDENTIALS_USR}"
-        DOCKERHUB_PASS = "${DOCKERHUB_CREDENTIALS_PSW}"
+        DOCKERHUB_CREDS = credentials('dockerhub-creds')
         IMAGE_NAME = "florinelfrancisc/oessoncapstone:latest"
-        KUBECONFIG_CREDENTIALS = credentials('kubeconfig-creds')
     }
 
     stages {
@@ -17,39 +14,35 @@ pipeline {
         }
         stage('Test') {
             agent {
-                docker {
-                    image 'python:3.11-slim'
-                }
+                docker { image 'python:3.11-slim' }
             }
             steps {
                 sh '''
-                pip install -r requirements.txt
-                pip install pytest
-                pytest || true
+                    pip install -r requirements.txt
+                    pip install pytest
+                    pytest || true
                 '''
             }
         }
-        stage('Build Docker Image') {
+        stage('Bygg Docker-image') {
+            steps {
+                sh "docker build -t $IMAGE_NAME -f docker/Dockerfile ."
+            }
+        }
+        stage('Push till DockerHub') {
             steps {
                 sh '''
-                docker build -t $IMAGE_NAME -f docker/Dockerfile .
+                    echo $DOCKERHUB_CREDS_PSW | docker login -u $DOCKERHUB_CREDS_USR --password-stdin
+                    docker push $IMAGE_NAME
                 '''
             }
         }
-        stage('Push to DockerHub') {
+        stage('Deploy till Kubernetes') {
             steps {
-                sh '''
-                echo $DOCKERHUB_PASS | docker login -u $DOCKERHUB_USER --password-stdin
-                docker push $IMAGE_NAME
-                '''
-            }
-        }
-        stage('Deploy to Kubernetes') {
-            steps {
-                withCredentials([file(credentialsId: 'kubeconfig-creds', variable: 'KUBECONFIG_FILE')]) {
+                withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG_FILE')]) {
                     sh '''
-                    export KUBECONFIG=$KUBECONFIG_FILE
-                    kubectl apply -f k8s/
+                        export KUBECONFIG=$KUBECONFIG_FILE
+                        kubectl apply -f k8s/
                     '''
                 }
             }
