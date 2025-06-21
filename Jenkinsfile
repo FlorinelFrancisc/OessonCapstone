@@ -46,7 +46,7 @@ pipeline {
         stage('Deploy till Kubernetes') {
             steps {
                 // Använd inbäddad kubeconfig-fil
-                withCredentials([file(credentialsId: 'kubeconfig-embeded', variable: 'KUBECONFIG_FILE')]) {
+                withCredentials([file(credentialsId: 'kubeconfig-embedded', variable: 'KUBECONFIG_FILE')]) {
                     sh '''
                         export KUBECONFIG=$KUBECONFIG_FILE
                         kubectl apply -f k8s/
